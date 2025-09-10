@@ -1,0 +1,12 @@
+---
+# Source: ai-starter-kit/charts/mlflow/templates/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ai-starter-kit-mlflow-env-configmap
+  labels:
+    app: mlflow
+    chart: mlflow-0.12.0
+    release: ai-starter-kit
+    heritage: Helm
+data:

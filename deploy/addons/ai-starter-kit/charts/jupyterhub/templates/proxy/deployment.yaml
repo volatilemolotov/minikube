@@ -1,0 +1,123 @@
+---
+# Source: ai-starter-kit/charts/jupyterhub/templates/proxy/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-starter-kit-jupyterhub-proxy
+  labels:
+    component: proxy
+    app.kubernetes.io/component: proxy
+    app: "jupyterhub"
+    release: "ai-starter-kit"
+    chart: jupyterhub-4.2.0
+    heritage: Helm
+    app.kubernetes.io/name: "jupyterhub"
+    app.kubernetes.io/instance: "ai-starter-kit"
+    helm.sh/chart: jupyterhub-4.2.0
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: proxy
+      app: "jupyterhub"
+      release: "ai-starter-kit"
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        component: proxy
+        app.kubernetes.io/component: proxy
+        app: "jupyterhub"
+        release: "ai-starter-kit"
+        app.kubernetes.io/name: "jupyterhub"
+        app.kubernetes.io/instance: "ai-starter-kit"
+        hub.jupyter.org/network-access-hub: "true"
+        hub.jupyter.org/network-access-singleuser: "true"
+      annotations:
+        # We want to restart proxy only if the auth token changes
+        # Other changes to the hub config should not restart.
+        # We truncate to 4 chars to avoid leaking auth token info,
+        # since someone could brute force the hash to obtain the token
+        #
+        # Note that if auth_token has to be generated at random, it will be
+        # generated at random here separately from being generated at random in
+        # the k8s Secret template. This will cause this annotation to change to
+        # match the k8s Secret during the first upgrade following an auth_token
+        # was generated.
+        checksum/auth-token: "2125"
+        checksum/proxy-secret: "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    spec:
+      terminationGracePeriodSeconds: 60
+      tolerations:
+        - effect: NoSchedule
+          key: hub.jupyter.org/dedicated
+          operator: Equal
+          value: core
+        - effect: NoSchedule
+          key: hub.jupyter.org_dedicated
+          operator: Equal
+          value: core
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              preference:
+                matchExpressions:
+                  - key: hub.jupyter.org/node-purpose
+                    operator: In
+                    values: [core]
+      containers:
+        - name: chp
+          image: quay.io/jupyterhub/configurable-http-proxy:4.6.3
+          command:
+            - configurable-http-proxy
+            - "--ip="
+            - "--api-ip="
+            - --api-port=8001
+            - --default-target=http://ai-starter-kit-jupyterhub-hub:$(AI_STARTER_KIT_JUPYTERHUB_HUB_SERVICE_PORT)
+            - --error-target=http://ai-starter-kit-jupyterhub-hub:$(AI_STARTER_KIT_JUPYTERHUB_HUB_SERVICE_PORT)/hub/error
+            - --port=8000
+          env:
+            - name: CONFIGPROXY_AUTH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  # NOTE: References the chart managed k8s Secret even if
+                  #       hub.existingSecret is specified to avoid using the
+                  #       lookup function on the user managed k8s Secret.
+                  name: ai-starter-kit-jupyterhub-hub
+                  key: hub.config.ConfigurableHTTPProxy.auth_token
+          ports:
+            - name: http
+              containerPort: 8000
+            - name: api
+              containerPort: 8001
+          livenessProbe:
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 30
+            httpGet:
+              path: /_chp_healthz
+              port: http
+              scheme: HTTP
+          readinessProbe:
+            initialDelaySeconds: 0
+            periodSeconds: 2
+            timeoutSeconds: 1
+            failureThreshold: 1000
+            httpGet:
+              path: /_chp_healthz
+              port: http
+              scheme: HTTP
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            runAsGroup: 65534
+            runAsNonRoot: true
+            runAsUser: 65534
+            seccompProfile:
+              type: RuntimeDefault

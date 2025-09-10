@@ -1,0 +1,25 @@
+---
+# Source: ai-starter-kit/charts/jupyterhub/templates/hub/pvc.yaml
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: ai-starter-kit-jupyterhub-hub-db-dir
+  labels:
+    component: hub
+    app.kubernetes.io/component: hub
+    app: "jupyterhub"
+    release: "ai-starter-kit"
+    chart: jupyterhub-4.2.0
+    heritage: Helm
+    app.kubernetes.io/name: "jupyterhub"
+    app.kubernetes.io/instance: "ai-starter-kit"
+    helm.sh/chart: jupyterhub-4.2.0
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    helm.sh/resource-policy: keep
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: "1Gi"

@@ -1,0 +1,137 @@
+---
+# Source: ai-starter-kit/charts/jupyterhub/templates/hub/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-starter-kit-jupyterhub-hub
+  labels:
+    component: hub
+    app.kubernetes.io/component: hub
+    app: "jupyterhub"
+    release: "ai-starter-kit"
+    chart: jupyterhub-4.2.0
+    heritage: Helm
+    app.kubernetes.io/name: "jupyterhub"
+    app.kubernetes.io/instance: "ai-starter-kit"
+    helm.sh/chart: jupyterhub-4.2.0
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: hub
+      app: "jupyterhub"
+      release: "ai-starter-kit"
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        component: hub
+        app.kubernetes.io/component: hub
+        app: "jupyterhub"
+        release: "ai-starter-kit"
+        app.kubernetes.io/name: "jupyterhub"
+        app.kubernetes.io/instance: "ai-starter-kit"
+        hub.jupyter.org/network-access-proxy-api: "true"
+        hub.jupyter.org/network-access-proxy-http: "true"
+        hub.jupyter.org/network-access-singleuser: "true"
+      annotations:
+        checksum/config-map: f3feca1386995c56624f72e25faedbe19e4e78d0b4c2d37fdf25c95884eaeae8
+        checksum/secret: 2c0c5de1af570b95439fda599976d0ddc1c7a210fe1589aebbf0fca09881909e
+    spec:
+      tolerations:
+        - effect: NoSchedule
+          key: hub.jupyter.org/dedicated
+          operator: Equal
+          value: core
+        - effect: NoSchedule
+          key: hub.jupyter.org_dedicated
+          operator: Equal
+          value: core
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              preference:
+                matchExpressions:
+                  - key: hub.jupyter.org/node-purpose
+                    operator: In
+                    values: [core]
+      volumes:
+        - name: config
+          configMap:
+            name: ai-starter-kit-jupyterhub-hub
+        - name: secret
+          secret:
+            secretName: ai-starter-kit-jupyterhub-hub
+        - name: pvc
+          persistentVolumeClaim:
+            claimName: ai-starter-kit-jupyterhub-hub-db-dir
+      serviceAccountName: ai-starter-kit-jupyterhub-hub
+      securityContext:
+        fsGroup: 1000
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: hub
+          image: quay.io/jupyterhub/k8s-hub:4.2.0
+          args:
+            - jupyterhub
+            - --config
+            - /usr/local/etc/jupyterhub/jupyterhub_config.py
+            - --upgrade-db
+          volumeMounts:
+            - mountPath: /usr/local/etc/jupyterhub/jupyterhub_config.py
+              subPath: jupyterhub_config.py
+              name: config
+            - mountPath: /usr/local/etc/jupyterhub/z2jh.py
+              subPath: z2jh.py
+              name: config
+            - mountPath: /usr/local/etc/jupyterhub/config/
+              name: config
+            - mountPath: /usr/local/etc/jupyterhub/secret/
+              name: secret
+            - mountPath: /srv/jupyterhub
+              name: pvc
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            runAsGroup: 1000
+            runAsUser: 1000
+          env:
+            - name: PYTHONUNBUFFERED
+              value: "1"
+            - name: HELM_RELEASE_NAME
+              value: "ai-starter-kit"
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: CONFIGPROXY_AUTH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: ai-starter-kit-jupyterhub-hub
+                  key: hub.config.ConfigurableHTTPProxy.auth_token
+          ports:
+            - name: http
+              containerPort: 8081
+          livenessProbe:
+            initialDelaySeconds: 300
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 30
+            httpGet:
+              path: /hub/health
+              port: http
+          readinessProbe:
+            initialDelaySeconds: 0
+            periodSeconds: 2
+            timeoutSeconds: 1
+            failureThreshold: 1000
+            httpGet:
+              path: /hub/health
+              port: http

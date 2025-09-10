@@ -37,6 +37,7 @@ var addonPodLabels = map[string]string{
 	"gvisor":              "kubernetes.io/minikube-addons=gvisor",
 	"gcp-auth":            "kubernetes.io/minikube-addons=gcp-auth",
 	"csi-hostpath-driver": "kubernetes.io/minikube-addons=csi-hostpath-driver",
+	"ai-starter-kit":      "kubernetes.io/minikube-addons=ai-starter-kit",
 }
 
 // Addons is a list of all addons
@@ -247,6 +248,11 @@ var Addons = []*Addon{
 	},
 	{
 		name:      "yakd",
+		set:       SetBool,
+		callbacks: []setFn{EnableOrDisableAddon},
+	},
+	{
+		name:      "ai-starter-kit",
 		set:       SetBool,
 		callbacks: []setFn{EnableOrDisableAddon},
 	},

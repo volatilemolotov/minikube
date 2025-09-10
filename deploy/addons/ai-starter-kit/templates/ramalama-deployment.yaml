@@ -1,0 +1,62 @@
+---
+# Source: ai-starter-kit/templates/ramalama-deployment.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-starter-kit-ramalama
+  labels:
+    helm.sh/chart: ai-starter-kit-0.1.0
+    app.kubernetes.io/name: ai-starter-kit
+    app.kubernetes.io/instance: ai-starter-kit
+    app.kubernetes.io/version: "1.16.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: ramalama
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: ai-starter-kit
+    app.kubernetes.io/instance: ai-starter-kit
+    app.kubernetes.io/component: ramalama
+---
+# Source: ai-starter-kit/templates/ramalama-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-starter-kit-ramalama
+  labels:
+    helm.sh/chart: ai-starter-kit-0.1.0
+    app.kubernetes.io/name: ai-starter-kit
+    app.kubernetes.io/instance: ai-starter-kit
+    app.kubernetes.io/version: "1.16.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: ramalama
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ai-starter-kit
+      app.kubernetes.io/instance: ai-starter-kit
+      app.kubernetes.io/component: ramalama
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: ai-starter-kit
+        app.kubernetes.io/instance: ai-starter-kit
+        app.kubernetes.io/component: ramalama
+    spec:
+      containers:
+      - name: ramalama
+        image: "quay.io/ramalama/ramalama:latest"
+        imagePullPolicy: IfNotPresent
+        command:
+          - /bin/sh
+          - -c
+          - ramalama pull qwen2.5:1.5b && ramalama serve qwen2.5:1.5b --port 8080
+        ports:
+          - name: http
+            containerPort: 8080
+            protocol: TCP

@@ -1,0 +1,97 @@
+---
+# Source: ai-starter-kit/charts/jupyterhub/templates/scheduling/user-scheduler/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-starter-kit-jupyterhub-user-scheduler
+  labels:
+    component: user-scheduler
+    app.kubernetes.io/component: user-scheduler
+    app: "jupyterhub"
+    release: "ai-starter-kit"
+    chart: jupyterhub-4.2.0
+    heritage: Helm
+    app.kubernetes.io/name: "jupyterhub"
+    app.kubernetes.io/instance: "ai-starter-kit"
+    helm.sh/chart: jupyterhub-4.2.0
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      component: user-scheduler
+      app: "jupyterhub"
+      release: "ai-starter-kit"
+  template:
+    metadata:
+      labels:
+        component: user-scheduler
+        app.kubernetes.io/component: user-scheduler
+        app: "jupyterhub"
+        release: "ai-starter-kit"
+        app.kubernetes.io/name: "jupyterhub"
+        app.kubernetes.io/instance: "ai-starter-kit"
+      annotations:
+        checksum/config-map: 631741e742b8b6a9e337887c839b6430b33d8542efcf7f959f8979c1806754cb
+    spec:
+      
+      serviceAccountName: ai-starter-kit-jupyterhub-user-scheduler
+      tolerations:
+        - effect: NoSchedule
+          key: hub.jupyter.org/dedicated
+          operator: Equal
+          value: core
+        - effect: NoSchedule
+          key: hub.jupyter.org_dedicated
+          operator: Equal
+          value: core
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              preference:
+                matchExpressions:
+                  - key: hub.jupyter.org/node-purpose
+                    operator: In
+                    values: [core]
+      volumes:
+        - name: config
+          configMap:
+            name: ai-starter-kit-jupyterhub-user-scheduler
+      containers:
+        - name: kube-scheduler
+          image: registry.k8s.io/kube-scheduler:v1.30.11
+          command:
+            - /usr/local/bin/kube-scheduler
+            # NOTE: --authentication-skip-lookup=true is used to avoid a
+            #       seemingly harmless error, if we need to not skip
+            #       "authentication lookup" in the future, see the linked issue.
+            #
+            # ref: https://github.com/jupyterhub/zero-to-jupyterhub-k8s/issues/1894
+            - --config=/etc/user-scheduler/config.yaml
+            - --authentication-skip-lookup=true
+            - --v=4
+          volumeMounts:
+            - mountPath: /etc/user-scheduler
+              name: config
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              scheme: HTTPS
+              port: 10259
+            initialDelaySeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              scheme: HTTPS
+              port: 10259
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            runAsGroup: 65534
+            runAsNonRoot: true
+            runAsUser: 65534
+            seccompProfile:
+              type: RuntimeDefault

@@ -182,4 +182,8 @@ var (
 	// Kubetail assets for kubetail addon
 	//go:embed kubetail/*.yaml kubetail/*.tmpl
 	KubetailAssets embed.FS
+
+	// ai-starter-kit assets for ai-starter-kit addon
+	//go:embed all:ai-starter-kit
+	AiStarterKitAssets embed.FS
 )

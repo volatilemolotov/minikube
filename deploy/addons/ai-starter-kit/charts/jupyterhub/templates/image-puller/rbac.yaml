@@ -1,0 +1,56 @@
+---
+# Source: ai-starter-kit/charts/jupyterhub/templates/image-puller/rbac.yaml
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: ai-starter-kit-jupyterhub-hook-image-awaiter
+  labels:
+    component: image-puller
+    app.kubernetes.io/component: image-puller
+    app: "jupyterhub"
+    release: "ai-starter-kit"
+    chart: jupyterhub-4.2.0
+    heritage: Helm
+    app.kubernetes.io/name: "jupyterhub"
+    app.kubernetes.io/instance: "ai-starter-kit"
+    helm.sh/chart: jupyterhub-4.2.0
+    app.kubernetes.io/managed-by: Helm
+    hub.jupyter.org/deletable: "true"
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+    "helm.sh/hook-weight": "0"
+rules:
+  - apiGroups: ["apps"]       # "" indicates the core API group
+    resources: ["daemonsets"]
+    verbs: ["get"]
+---
+# Source: ai-starter-kit/charts/jupyterhub/templates/image-puller/rbac.yaml
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: ai-starter-kit-jupyterhub-hook-image-awaiter
+  labels:
+    component: image-puller
+    app.kubernetes.io/component: image-puller
+    app: "jupyterhub"
+    release: "ai-starter-kit"
+    chart: jupyterhub-4.2.0
+    heritage: Helm
+    app.kubernetes.io/name: "jupyterhub"
+    app.kubernetes.io/instance: "ai-starter-kit"
+    helm.sh/chart: jupyterhub-4.2.0
+    app.kubernetes.io/managed-by: Helm
+    hub.jupyter.org/deletable: "true"
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+    "helm.sh/hook-weight": "0"
+subjects:
+  - kind: ServiceAccount
+    name: ai-starter-kit-jupyterhub-hook-image-awaiter
+    namespace: "default"
+roleRef:
+  kind: Role
+  name: ai-starter-kit-jupyterhub-hook-image-awaiter
+  apiGroup: rbac.authorization.k8s.io

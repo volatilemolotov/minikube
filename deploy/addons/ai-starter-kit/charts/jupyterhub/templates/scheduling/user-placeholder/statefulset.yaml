@@ -1,0 +1,73 @@
+---
+# Source: ai-starter-kit/charts/jupyterhub/templates/scheduling/user-placeholder/statefulset.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: ai-starter-kit-jupyterhub-user-placeholder
+  labels:
+    component: user-placeholder
+    app.kubernetes.io/component: user-placeholder
+    app: "jupyterhub"
+    release: "ai-starter-kit"
+    chart: jupyterhub-4.2.0
+    heritage: Helm
+    app.kubernetes.io/name: "jupyterhub"
+    app.kubernetes.io/instance: "ai-starter-kit"
+    helm.sh/chart: jupyterhub-4.2.0
+    app.kubernetes.io/managed-by: Helm
+spec:
+  podManagementPolicy: Parallel
+  replicas: 0
+  selector:
+    matchLabels:
+      component: user-placeholder
+      app: "jupyterhub"
+      release: "ai-starter-kit"
+  serviceName: ai-starter-kit-jupyterhub-user-placeholder
+  template:
+    metadata:
+      labels:
+        component: user-placeholder
+        app.kubernetes.io/component: user-placeholder
+        app: "jupyterhub"
+        release: "ai-starter-kit"
+        app.kubernetes.io/name: "jupyterhub"
+        app.kubernetes.io/instance: "ai-starter-kit"
+    spec:
+      schedulerName: ai-starter-kit-jupyterhub-user-scheduler
+      tolerations:
+        - effect: NoSchedule
+          key: hub.jupyter.org/dedicated
+          operator: Equal
+          value: user
+        - effect: NoSchedule
+          key: hub.jupyter.org_dedicated
+          operator: Equal
+          value: user
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              preference:
+                matchExpressions:
+                  - key: hub.jupyter.org/node-purpose
+                    operator: In
+                    values: [user]
+      terminationGracePeriodSeconds: 0
+      automountServiceAccountToken: false
+      containers:
+        - name: pause
+          image: registry.k8s.io/pause:3.10
+          resources:
+            requests:
+              memory: 1G
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            runAsGroup: 65534
+            runAsNonRoot: true
+            runAsUser: 65534
+            seccompProfile:
+              type: RuntimeDefault

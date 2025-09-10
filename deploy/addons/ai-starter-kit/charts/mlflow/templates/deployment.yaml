@@ -1,0 +1,84 @@
+---
+# Source: ai-starter-kit/charts/mlflow/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-starter-kit-mlflow
+  labels:
+    helm.sh/chart: mlflow-0.12.0
+    app: mlflow
+    app.kubernetes.io/name: mlflow
+    app.kubernetes.io/instance: ai-starter-kit
+    version: "2.19.0"
+    app.kubernetes.io/version: "2.19.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 100%
+  selector:
+    matchLabels:
+      app: mlflow
+      app.kubernetes.io/name: mlflow
+      app.kubernetes.io/instance: ai-starter-kit
+  template:
+    metadata:
+      labels:
+        app: mlflow
+        app.kubernetes.io/name: mlflow
+        app.kubernetes.io/instance: ai-starter-kit
+    spec:
+      serviceAccountName: ai-starter-kit-mlflow
+      securityContext:
+        {}
+      containers:
+        - name: mlflow
+          securityContext:
+            {}
+          image: "burakince/mlflow:2.19.0"
+          imagePullPolicy: IfNotPresent
+          command: ["mlflow"]
+          args:
+            - server
+            - --host=0.0.0.0
+            - --port=5000
+            - --backend-store-uri=sqlite:///:memory
+            - --default-artifact-root=./mlruns
+          ports:
+            - name: http
+              containerPort: 5000
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            failureThreshold: 5
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            failureThreshold: 5
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 3
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+            requests:
+              cpu: 100m
+              memory: 512Mi
+          env:
+            - name: MLFLOW_VERSION
+              value: "2.19.0"
+          envFrom:
+            - configMapRef:
+                name: ai-starter-kit-mlflow-env-configmap
+            - secretRef:
+                name: ai-starter-kit-mlflow-env-secret

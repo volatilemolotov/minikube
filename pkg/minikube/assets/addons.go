@@ -17,8 +17,11 @@ limitations under the License.
 package assets
 
 import (
+	"embed"
 	"fmt"
+	"io/fs"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
@@ -97,6 +100,33 @@ func (a *Addon) IsEnabledOrDefault(cc *config.ClusterConfig) bool {
 // EnableByDefault will enable the addon by default on cluster start
 func (a *Addon) EnableByDefault() {
 	a.enabled = true
+}
+
+// MustBinAssetsFromFs walks the provided embedded filesystem and creates BinAsset for each file.
+func MustBinAssetsFromFs(addfs embed.FS, srcRoot, targetDir, permissions string) []*BinAsset {
+	var assets []*BinAsset
+	err := fs.WalkDir(addfs, srcRoot, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			return nil
+		}
+
+		// We want the path relative to the addon directory for the target filename
+		relPath, err := filepath.Rel(srcRoot, path)
+		if err != nil {
+			return err
+		}
+		targetName := filepath.Base(relPath)
+		asset := MustBinAsset(addfs, path, targetDir, targetName, permissions)
+		assets = append(assets, asset)
+		return nil
+	})
+	if err != nil {
+		panic(fmt.Sprintf("failed to walk embedded fs for %s: %v", srcRoot, err))
+	}
+	return assets
 }
 
 // Addons is the list of addons
@@ -812,6 +842,13 @@ var Addons = map[string]*Addon{
 		},
 		map[string]string{
 			"Kubetail": "docker.io",
+		}),
+	"ai-starter-kit": NewAddon(MustBinAssetsFromFs(addons.AiStarterKitAssets, "ai-starter-kit", vmpath.GuestAddonsDir, "0640"), false, "ai-starter-kit", "3rd party (akvelon.com)", "", "",
+		map[string]string{
+			"ai-starter-kit": "",
+		},
+		map[string]string{
+			"ai-starter-kit": "",
 		}),
 }
 

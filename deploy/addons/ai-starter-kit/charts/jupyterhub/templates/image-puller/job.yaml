@@ -1,0 +1,73 @@
+---
+# Source: ai-starter-kit/charts/jupyterhub/templates/image-puller/job.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ai-starter-kit-jupyterhub-hook-image-awaiter
+  labels:
+    component: image-puller
+    app.kubernetes.io/component: image-puller
+    app: "jupyterhub"
+    release: "ai-starter-kit"
+    chart: jupyterhub-4.2.0
+    heritage: Helm
+    app.kubernetes.io/name: "jupyterhub"
+    app.kubernetes.io/instance: "ai-starter-kit"
+    helm.sh/chart: jupyterhub-4.2.0
+    app.kubernetes.io/managed-by: Helm
+    hub.jupyter.org/deletable: "true"
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+    "helm.sh/hook-weight": "10"
+spec:
+  template:
+    # The hook-image-awaiter Job and hook-image-puller DaemonSet was
+    # conditionally created based on this state:
+    #
+    # prePuller.hook.enabled=true
+    # prePuller.hook.pullOnlyOnChanges=true
+    # post-upgrade checksum != pre-upgrade checksum (of the hook-image-puller DaemonSet)
+    # "0b398225daf470c79167dc4ddf0f079bd8ab0636a7b9ecfc53b298ab8dab1c81" != ""
+    #
+    metadata:
+      labels:
+        component: image-puller
+        app.kubernetes.io/component: image-puller
+        app: "jupyterhub"
+        release: "ai-starter-kit"
+        app.kubernetes.io/name: "jupyterhub"
+        app.kubernetes.io/instance: "ai-starter-kit"
+    spec:
+      restartPolicy: Never
+      serviceAccountName: ai-starter-kit-jupyterhub-hook-image-awaiter
+      tolerations:
+        - effect: NoSchedule
+          key: hub.jupyter.org/dedicated
+          operator: Equal
+          value: core
+        - effect: NoSchedule
+          key: hub.jupyter.org_dedicated
+          operator: Equal
+          value: core
+      containers:
+        - image: quay.io/jupyterhub/k8s-image-awaiter:4.2.0
+          name: ai-starter-kit-jupyterhub-hook-image-awaiter
+          command:
+            - /image-awaiter
+            - -ca-path=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+            - -auth-token-path=/var/run/secrets/kubernetes.io/serviceaccount/token
+            - -api-server-address=https://kubernetes.default.svc:$(KUBERNETES_SERVICE_PORT)
+            - -namespace=default
+            - -daemonset=ai-starter-kit-jupyterhub-hook-image-puller
+            - -pod-scheduling-wait-duration=10
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            runAsGroup: 65534
+            runAsNonRoot: true
+            runAsUser: 65534
+            seccompProfile:
+              type: RuntimeDefault
