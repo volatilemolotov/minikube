@@ -118,7 +118,9 @@ func MustBinAssetsFromFs(addfs embed.FS, srcRoot, targetDir, permissions string)
 		if err != nil {
 			return err
 		}
-		targetName := filepath.Base(relPath)
+
+		// Create a flattened path for the target, replacing directory separators with underscores.
+		targetName := strings.ReplaceAll(relPath, string(filepath.Separator), "_")
 		asset := MustBinAsset(addfs, path, targetDir, targetName, permissions)
 		assets = append(assets, asset)
 		return nil
