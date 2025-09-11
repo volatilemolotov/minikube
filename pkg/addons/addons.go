@@ -456,7 +456,19 @@ func enableOrDisableAddonInternal(cc *config.ClusterConfig, addon *assets.Addon,
 	apply := func() error {
 		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 		defer cancel()
-		_, err := runner.RunCmd(kubectlCommand(ctx, cc, deployFiles, enable, force))
+		if addon.HelmChart != nil {
+			if _, ok := addon.Images["Helm3"]; ok {
+				if _, err := runner.RunCmd(exec.Command("docker", "run", "--rm","--entrypoint", "/bin/sh", "-v", "/usr/local/bin:/out", addon.Images["Helm3"],"-c",  "cp /usr/bin/helm /out/helm")); err != nil {
+					return errors.Wrap(err, "installing helm")
+				}
+			}
+			cmd := helmCommand(ctx, addon.HelmChart, enable)
+			_, err := runner.RunCmd(cmd)
+			return err
+		}
+
+		cmd := kubectlCommand(ctx, cc, deployFiles, enable, force)
+		_, err := runner.RunCmd(cmd)
 		if err != nil {
 			klog.Warningf("apply failed, will retry: %v", err)
 			force = true
