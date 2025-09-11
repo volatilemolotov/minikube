@@ -250,4 +250,9 @@ var Addons = []*Addon{
 		set:       SetBool,
 		callbacks: []setFn{EnableOrDisableAddon},
 	},
+	{
+		name:      "helm-example",
+		set:       SetBool,
+		callbacks: []setFn{EnableOrDisableAddon},
+	},
 }
