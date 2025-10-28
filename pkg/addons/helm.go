@@ -26,7 +26,7 @@ import (
 	"k8s.io/minikube/pkg/minikube/vmpath"
 )
 
-func helmCommand(ctx context.Context, chart *assets.HelmChart, enable bool) *exec.Cmd {
+func helmCommand(ctx context.Context, chart *assets.HelmChart, enable bool, mode string) *exec.Cmd {
 	var args []string
 
 	if !enable {
@@ -42,11 +42,14 @@ func helmCommand(ctx context.Context, chart *assets.HelmChart, enable bool) *exe
 
 	args = []string{
 		fmt.Sprintf("KUBECONFIG=%s", path.Join(vmpath.GuestPersistentDir, "kubeconfig")),
-		"helm", "install", chart.Name, chart.Repo, "--create-namespace",
+		"helm", "upgrade", "--install", chart.Name, chart.Repo, "--create-namespace", "--values", "/etc/kubernetes/addons/values.yaml",
 	}
-
 	if chart.Namespace != "" {
 		args = append(args, "--namespace", chart.Namespace)
+	}
+	switch mode {
+	case "macosgpu":
+		args = append(args, "--values", "/etc/kubernetes/addons/macos-values.yaml")
 	}
 
 	args = append(args, chart.Values...)

@@ -80,6 +80,9 @@ var addonsConfigureCmd = &cobra.Command{
 		case "auto-pause":
 			processAutoPauseConfig(profile, addonConfig)
 
+		case "ai-starter-kit":
+			processAiStarterKitConfig(profile, addonConfig)
+
 		default:
 			out.FailureT("{{.name}} has no available configuration options", out.V{"name": addon})
 			return
@@ -270,5 +273,32 @@ func processRegistryAliasesConfig(profile string, _ *addonConfig) {
 		if err := addons.EnableOrDisableAddon(cfg, "registry-aliases", "true"); err != nil {
 			out.ErrT(style.Fatal, "Failed to configure registry-aliases {{.profile}}", out.V{"profile": profile})
 		}
+	}
+}
+
+// Processes metallb addon config from configFile if it exists otherwise resorts to default behavior
+func processAiStarterKitConfig(profile string, _ *addonConfig) {
+	_, cfg := mustload.Partial(profile)
+
+		validator := func(s string) bool {
+			switch s {
+			case "cpu":
+				return true
+			case "macosgpu":
+				return true
+			default:
+				return false
+			}
+	}
+
+	cfg.KubernetesConfig.AiStarterKitMode = AskForStaticValidatedValue("-- Enter desired mode (options are: cpu, macosgpu): ", validator)
+
+	if err := config.SaveProfile(profile, cfg); err != nil {
+		out.ErrT(style.Fatal, "Failed to save config {{.profile}}", out.V{"profile": profile})
+	}
+
+	// Re-enable metallb addon in order to generate template manifest files with Load Balancer Start/End IP
+	if err := addons.EnableOrDisableAddon(cfg, "ai-starter-kit", "true"); err != nil {
+		out.ErrT(style.Fatal, "Failed to configure ai-starter-kit mode {{.profile}}", out.V{"profile": profile})
 	}
 }

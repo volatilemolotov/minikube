@@ -462,7 +462,7 @@ func enableOrDisableAddonInternal(cc *config.ClusterConfig, addon *assets.Addon,
 					return errors.Wrap(err, "installing helm")
 				}
 			}
-			cmd := helmCommand(ctx, addon.HelmChart, enable)
+			cmd := helmCommand(ctx, addon.HelmChart, enable, cc.KubernetesConfig.AiStarterKitMode)
 			_, err := runner.RunCmd(cmd)
 			return err
 		}

@@ -251,7 +251,7 @@ var Addons = []*Addon{
 		callbacks: []setFn{EnableOrDisableAddon},
 	},
 	{
-		name:      "helm-example",
+		name:      "ai-starter-kit",
 		set:       SetBool,
 		callbacks: []setFn{EnableOrDisableAddon},
 	},

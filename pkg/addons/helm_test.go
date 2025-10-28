@@ -30,6 +30,7 @@ func TestHelmCommand(t *testing.T) {
 		chart       *assets.HelmChart
 		enable      bool
 		expected    string
+		mode 				string
 	}{
 		{
 			description: "enable an addon",
@@ -40,7 +41,8 @@ func TestHelmCommand(t *testing.T) {
 				Values:    []string{"--set", "key=value"},
 			},
 			enable:   true,
-			expected: "sudo KUBECONFIG=/var/lib/minikube/kubeconfig helm install addon-name addon-repo/addon-chart --create-namespace --namespace addon-namespace --set key=value",
+			expected: "sudo KUBECONFIG=/var/lib/minikube/kubeconfig helm upgrade --install addon-name addon-repo/addon-chart --create-namespace --values /etc/kubernetes/addons/values.yaml --namespace addon-namespace --set key=value",
+			mode: "cpu",
 		},
 		{
 			description: "enable an addon without namespace",
@@ -49,7 +51,8 @@ func TestHelmCommand(t *testing.T) {
 				Repo: "addon-repo/addon-chart",
 			},
 			enable:   true,
-			expected: "sudo KUBECONFIG=/var/lib/minikube/kubeconfig helm install addon-name addon-repo/addon-chart --create-namespace",
+			expected: "sudo KUBECONFIG=/var/lib/minikube/kubeconfig helm upgrade --install addon-name addon-repo/addon-chart --create-namespace --values /etc/kubernetes/addons/values.yaml",
+			mode: "cpu",
 		},
 		{
 			description: "disable an addon",
@@ -59,12 +62,13 @@ func TestHelmCommand(t *testing.T) {
 			},
 			enable:   false,
 			expected: "sudo KUBECONFIG=/var/lib/minikube/kubeconfig helm uninstall addon-name --namespace addon-namespace",
+			mode: "cpu",
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.description, func(t *testing.T) {
-			command := helmCommand(context.Background(), test.chart, test.enable)
+			command := helmCommand(context.Background(), test.chart, test.enable, test.mode )
 			actual := strings.Join(command.Args, " ")
 			if actual != test.expected {
 				t.Errorf("helm command mismatch:\nexpected: %s\nactual:   %s", test.expected, actual)

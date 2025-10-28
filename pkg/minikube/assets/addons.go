@@ -824,11 +824,14 @@ var Addons = map[string]*Addon{
 		map[string]string{
 			"Kubetail": "docker.io",
 		}, nil),
-	"helm-example": NewAddon(nil, false, "helm-example", "minikube", "", "", map[string]string{"Helm3": "alpine/helm:3.9.0@sha256:9f4bf4d24241f983910550b1fe8688571cd684046500abe58cef14308f9cb19e"}, map[string]string{"Helm3": "docker.io"},
+	"ai-starter-kit": NewAddon([]*BinAsset{
+		MustBinAsset(addons.AiStarterKitAssets, "ai-starter-kit/ai-starter-kit-values.yaml", vmpath.GuestAddonsDir, "values.yaml", "0640"),
+		MustBinAsset(addons.AiStarterKitAssets, "ai-starter-kit/ai-starter-kit-macos-gpu-values.yaml", vmpath.GuestAddonsDir, "macos-values.yaml", "0640"),
+	}, false, "ai-starter-kit", "3rd party (akvelon.com)", "volatilemolotov", "", map[string]string{"Helm3": "alpine/helm:3.9.0@sha256:9f4bf4d24241f983910550b1fe8688571cd684046500abe58cef14308f9cb19e"}, map[string]string{"Helm3": "docker.io"},
 		&HelmChart{
-			Name:      "example",
-			Repo:      "oci://registry-1.docker.io/bitnamicharts/kuberay",
-			Namespace: "etherpad",
+			Name:      "ai-starter-kit",
+			Repo:      "oci://us-central1-docker.pkg.dev/akvelon-gke-aieco/helm-oci/ai-starter-kit",
+			Namespace: "ai-starter-kit",
 			Values:    []string{"--set", "service.type=NodePort"},
 		},
 	),
