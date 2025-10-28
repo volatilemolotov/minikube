@@ -137,6 +137,8 @@ type KubernetesConfig struct {
 
 	EnableDefaultCNI bool   // deprecated in preference to CNI
 	CNI              string // CNI to use
+
+	AiStarterKitMode string // only used for ai-starter-kit
 }
 
 // Node contains information about specific nodes in a cluster
