@@ -457,10 +457,30 @@ func enableOrDisableAddonInternal(cc *config.ClusterConfig, addon *assets.Addon,
 		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 		defer cancel()
 		if addon.HelmChart != nil {
-			if _, ok := addon.Images["Helm3"]; ok {
-				if _, err := runner.RunCmd(exec.Command("docker", "run", "--rm","--entrypoint", "/bin/sh", "-v", "/usr/local/bin:/out", addon.Images["Helm3"],"-c",  "cp /usr/bin/helm /out/helm")); err != nil {
+			// Check if helm binary exists in the guest OS
+			if _, err := runner.RunCmd(exec.Command("test", "-f", "/usr/bin/helm")); err != nil {
+				// If not, install it
+				rr, err := runner.RunCmd(exec.Command("uname", "-m"))
+				if err != nil {
+					return errors.Wrap(err, "getting architecture")
+				}
+				arch := strings.TrimSpace(rr.Stdout.String())
+				var helmArch string
+				switch arch {
+				case "x86_64":
+					helmArch = "amd64"
+				case "aarch64", "arm64":
+					helmArch = "arm64"
+				default:
+					return fmt.Errorf("failure to detect architecture or unsupported architecture: %s", arch)
+				}
+				helmURL := fmt.Sprintf("https://get.helm.sh/helm-v3.19.0-linux-%s.tar.gz", helmArch)
+				installCmd := fmt.Sprintf("curl -sSL %s | tar -xzf - -C /usr/local/bin --strip-components=1 linux-%s/helm", helmURL, helmArch)
+				_, err = runner.RunCmd(exec.Command("sudo", "bash", "-c", installCmd))
+				if err != nil {
 					return errors.Wrap(err, "installing helm")
 				}
+				
 			}
 			cmd := helmCommand(ctx, addon.HelmChart, enable, cc.KubernetesConfig.AiStarterKitMode)
 			_, err := runner.RunCmd(cmd)
