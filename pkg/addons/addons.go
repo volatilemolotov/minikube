@@ -475,7 +475,7 @@ func enableOrDisableAddonInternal(cc *config.ClusterConfig, addon *assets.Addon,
 					return fmt.Errorf("failure to detect architecture or unsupported architecture: %s", arch)
 				}
 				helmURL := fmt.Sprintf("https://get.helm.sh/helm-v3.19.0-linux-%s.tar.gz", helmArch)
-				installCmd := fmt.Sprintf("curl -sSL %s | tar -xzf - -C /usr/local/bin --strip-components=1 linux-%s/helm", helmURL, helmArch)
+				installCmd := fmt.Sprintf("curl -sSL %s | tar -xzf - -C /usr/bin --strip-components=1 linux-%s/helm", helmURL, helmArch)
 				_, err = runner.RunCmd(exec.Command("sudo", "bash", "-c", installCmd))
 				if err != nil {
 					return errors.Wrap(err, "installing helm")
